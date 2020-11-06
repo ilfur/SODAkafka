@@ -56,34 +56,31 @@ public class Producer {
 
     public void init() {
         props = new Properties();
-        props.setProperty("bootstrap.servers", "localhost:29092");
-        //props.setProperty("bootstrap.servers", "cell-1.streaming.eu-amsterdam-1.oci.oraclecloud.com:9092");
-        //props.setProperty("zookeeper.connect","127.0.0.1:32181");
-        String authToken = "U.76NGNraB-TBxEs2}r3";
+        //props.setProperty("bootstrap.servers", "localhost:29092");
+        props.setProperty("bootstrap.servers", "cell-1.streaming.eu-amsterdam-1.oci.oraclecloud.com:9092");
+        String authToken = "U.76NGNyadayada}r3";
         String tenancyName = "oraseemeadesandbox";
         String username = "oracleidentitycloudservice/marcel.pfeifer@oracle.com";
-        String streamPoolId = "ocid1.streampool.oc1.eu-amsterdam-1.amaaaaaaop3l36yardp4hio2jsjbesuqimdowpcjpivqf6ddvspenpxjd67a";
-        //props.setProperty("security.protocol", "SASL_SSL");
-        //props.setProperty("sasl.mechanism", "PLAIN");
-        /*props.setProperty("sasl.jaas.config",
+        String streamPoolId = "ocid1.streampool.oc1.eu-amsterdam-1.amaaaaaaop3l36yardp4hio2yadayadapivqf6ddvspenpxjd67a";
+        props.setProperty("security.protocol", "SASL_SSL");
+        props.setProperty("sasl.mechanism", "PLAIN");
+        props.setProperty("sasl.jaas.config",
                 "org.apache.kafka.common.security.plain.PlainLoginModule required username=\""
                 + tenancyName + "/"
                 + username + "/"
                 + streamPoolId + "\" "
                 + "password=\""
                 + authToken + "\";");
-        */
         props.setProperty("group.id", "oracleGroup");
         props.setProperty("enable.auto.commit", "false");
         props.setProperty("auto.commit.interval.ms", "1000");
         props.setProperty("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         props.setProperty("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         producer = new KafkaProducer<>(props);
-        //listenTopic = "restSourceDestinationTopic";
-        listenTopic = "Teststream";
-        url = "https://n7pmwsc8te8fjty-repodb.adb.eu-frankfurt-1.oraclecloudapps.com/ords/json/soda/latest/kafkacoll";
+        listenTopic = "SODAstream";
+        url = "https://n7pmwsc8te8fjty-repodb.adb.eu-frankfurt-1.oraclecloudapps.com/ords/json/soda/latest/SODAkafka";
         user = "JSON";
-        pwd = "BrunhildeZ32##";
+        pwd = "mypwd##";
         usernameAndPassword = user + ":" + pwd;
         authorizationHeaderValue = "Basic " + java.util.Base64.getEncoder().encodeToString(usernameAndPassword.getBytes());
         debug = true;
