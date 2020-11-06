@@ -1,14 +1,4 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 
-/**
- *
- * @author MPFEIFER
- */
-import java.io.IOException;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.Properties;
@@ -25,7 +15,6 @@ import javax.ws.rs.core.Response;
 import java.net.HttpURLConnection;
 import java.util.Collections;
 import javax.ws.rs.core.MediaType;
-import org.apache.kafka.clients.producer.ProducerRecord;
 
 
 /*
@@ -37,10 +26,10 @@ import org.apache.kafka.clients.producer.ProducerRecord;
  *
  * @author MPFEIFER
  */
-public class Producer {
+public class Forwarder {
 
     private Properties props = null;
-    private KafkaProducer<String, String> producer = null;
+    private KafkaConsumer<String, String> consumer = null;
     private String listenTopic = null;
     private String url = null;
     private String user = null;
@@ -50,15 +39,16 @@ public class Producer {
     private String authorizationHeaderValue = null;
     private boolean debug = true;
 
-    public Producer() {
+    public Forwarder() {
         init();
     }
 
     public void init() {
         props = new Properties();
         props.setProperty("bootstrap.servers", "localhost:29092");
+        //props.setProperty("zookeeper.connect","127.0.0.1:2181");
         //props.setProperty("bootstrap.servers", "cell-1.streaming.eu-amsterdam-1.oci.oraclecloud.com:9092");
-        //props.setProperty("zookeeper.connect","127.0.0.1:32181");
+        //props.setProperty("zookeeper.connect","127.0.0.1:2181");
         String authToken = "U.76NGNraB-TBxEs2}r3";
         String tenancyName = "oraseemeadesandbox";
         String username = "oracleidentitycloudservice/marcel.pfeifer@oracle.com";
@@ -73,12 +63,13 @@ public class Producer {
                 + "password=\""
                 + authToken + "\";");
         */
+
         props.setProperty("group.id", "oracleGroup");
         props.setProperty("enable.auto.commit", "false");
         props.setProperty("auto.commit.interval.ms", "1000");
-        props.setProperty("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-        props.setProperty("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-        producer = new KafkaProducer<>(props);
+        props.setProperty("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        props.setProperty("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        consumer = new KafkaConsumer<>(props);
         //listenTopic = "restSourceDestinationTopic";
         listenTopic = "Teststream";
         url = "https://n7pmwsc8te8fjty-repodb.adb.eu-frankfurt-1.oraclecloudapps.com/ords/json/soda/latest/kafkacoll";
@@ -89,13 +80,40 @@ public class Producer {
         debug = true;
     }
 
+    public boolean postToDatabase(String payload) {
+        WebTarget target = httpClient.target(url);
+        Invocation.Builder invocationBuilder = target
+                .request(MediaType.APPLICATION_JSON)
+                .header("Authorization", authorizationHeaderValue)
+                .accept("application/json");
+        Response response = invocationBuilder.post(Entity.json(payload));
+        String responseString = null;
+        int status = response.getStatus();
+        boolean successful = false;
+        if (response.getStatusInfo().getFamily() == Response.Status.Family.SUCCESSFUL) {
+            successful = true;
+            if (response.hasEntity() && debug) {
+                System.out.println (String.valueOf(response.readEntity(String.class)));
+            }
+        } else {
+            System.out.println ("Could not post to service: status "+status);
+        }
+        return successful;
+
+    }
+
     public static void main(String[] args) {
-        Producer pusher = new Producer();
-        try {
-            pusher.producer.send(new ProducerRecord<String, String>(pusher.listenTopic, "{\"TEST\":\"TEST\"}")).get();
-        } catch (Exception ex) {
-            System.out.print(ex.getMessage());
-            
+        Forwarder pusher = new Forwarder();
+        //pusher.postToDatabase("{\"StarterTest\":\"testing\"}");
+        pusher.consumer.subscribe(Collections.singletonList(pusher.listenTopic)); //(Arrays.asList(pusher.listenTopic));
+        while (true) {
+            ConsumerRecords<String, String> records = pusher.consumer.poll(Duration.ofMillis(1000));
+            //System.out.println("polling...");
+            for (ConsumerRecord<String, String> record : records) {
+                System.out.printf("offset = %d, key = %s, value = %s%n", record.offset(), record.key(), record.value());
+                pusher.postToDatabase(record.value());
+            }
+            pusher.consumer.commitSync();
         }
     }
 }
